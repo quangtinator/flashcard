@@ -1,0 +1,25 @@
+{
+  "scripts": {
+    "dev": "vite --open",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@shoelace-style/shoelace": "^2.12.0",
+    "@webwriter/lit": "*",
+    "lit": "^2.4.0",
+    "mime": "^3.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^4.8.4",
+    "vite": "^3.1.6"
+  },
+  "name": "ww-flashcards",
+  "version": "0.1.0",
+  "description": "ww-flashcards is a widget for the WebWriter tool to create flashcards ",
+  "main": "index.ts",
+  "keywords": [
+    "webwriter-widget"
+  ],
+  "author": "Quang Phung",
+  "license": "MIT"
+}
