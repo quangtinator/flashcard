@@ -5,7 +5,7 @@
   },
   "dependencies": {
     "@shoelace-style/shoelace": "^2.12.0",
-    "@webwriter/lit": "*",
+    "@webwriter/lit": "^0.7.1",
     "lit": "^2.4.0",
     "mime": "^3.0.0"
   },
