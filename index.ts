@@ -27,7 +27,7 @@ import "@shoelace-style/shoelace/dist/components/radio-group/radio-group.js";
 import "@shoelace-style/shoelace/dist/components/alert/alert.js";
 import "@shoelace-style/shoelace/dist/components/icon/icon.js";
 import { setBasePath } from "@shoelace-style/shoelace/dist/utilities/base-path";
-setBasePath("/node_modules/@shoelace-style/shoelace/dist");
+setBasePath("../node_modules/@shoelace-style/shoelace/dist");
 import mime from "mime";
 import SlIcon from "@shoelace-style/shoelace/dist/components/icon/icon.component.js";
 
