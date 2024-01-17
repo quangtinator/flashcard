@@ -3,7 +3,6 @@ import { css, html } from "lit";
 import { property } from "lit/decorators.js";
 import { customElement } from "lit/decorators.js";
 import { Deck } from "./Deck";
-import { ScopedElementsMixin } from "@open-wc/scoped-elements/html-element.js";
 import "@shoelace-style/shoelace/dist/themes/light.css";
 import "@shoelace-style/shoelace/dist/components/button/button.js";
 import "@shoelace-style/shoelace/dist/components/input/input.js";
@@ -27,9 +26,11 @@ import "@shoelace-style/shoelace/dist/components/radio-group/radio-group.js";
 import "@shoelace-style/shoelace/dist/components/alert/alert.js";
 import "@shoelace-style/shoelace/dist/components/icon/icon.js";
 import { setBasePath } from "@shoelace-style/shoelace/dist/utilities/base-path";
-setBasePath("https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/dist/");
+setBasePath(
+  "https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.12.0/dist/"
+);
 import mime from "mime";
-import SlIcon from "@shoelace-style/shoelace/dist/components/icon/icon.component.js";
+import { Flashcard } from "./Flashcard";
 
 @customElement("ww-flashcards")
 export class WwFlashcards extends LitElementWw {
@@ -363,7 +364,11 @@ export class WwFlashcards extends LitElementWw {
     }
 
     .new-deck-button, .new-card-button, .delete-card-button, .review-deck-button, .add-current-button {
+      display: flex;
+      justify-content: center;
+      align-items: center;
       width: 100%;
+      height: 100%;
       margin-bottom: 1rem;
     }
 
@@ -442,44 +447,100 @@ export class WwFlashcards extends LitElementWw {
       width: 20%;
     }
 
-    .no-more-card sl-alert {
+    .no-more-card sl-alert, .finish-review sl-alert, .empty-deck sl-alert {
       margin-top: 1rem;
     }
 
-    .finish-review sl-alert {
-      margin-top: 1rem;
+    .table-number {
+      width: 19%;
+      text-align: center;
     }
 
+    table {
+      width: 100%;
+      margin-top: 1rem;
+      border-collapse: collapse;
+      background-color: #fff;
+      border-color: grey;
+      border: 1rem;
+    }
+
+    th, td {
+      text-align: left;
+      height: 3rem;
+      border-color: grey;
+    }
+
+    th {
+      background-color: #4CAF50;
+      color: white;
+    }
+
+    tr:hover {
+      background-color: lightblue;
+    }
+
+    .sl-tree-item {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between:
+      align-items: center;
+    }
+    
+    .button-in-list-container {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .button-in-list {
+      top: 1rem;
+      margin: 0;
+      padding: 0;
+    }
+
+    .custom_list::part(label) {
+      width: 30rem;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: space-between;
+    }
   `;
 
   @property({ type: Array, attribute: true, reflect: true })
   deckCollection = [];
 
-  @property({ type: String, attribute: true, reflect: true })
-  deckName = "";
-
-  @property({ type: Deck, attribute: true, reflect: true })
-  selectedDeck = null;
-
-  @property({ type: Array, attribute: true, reflect: true })
-  reviewList = [];
-
-  @property({ type: Array, attribute: true, reflect: true })
-  checkBoxList = [];
-
   @property({ type: Array, attribute: true, reflect: true })
   cardList = [];
 
-  @property({ type: String, attribute: true, reflect: true })
+  @property({ type: String })
+  deckName = "";
+
+  @property({ type: Deck })
+  selectedDeck = null;
+
+  @property({ type: Deck })
+  editingDeck = null;
+
+  @property({ type: Flashcard })
+  editingCard = null;
+
+  @property({ type: Array })
+  reviewList = [];
+
+  @property({ type: String })
   frontType = "text";
 
-  @property({ type: String, attribute: true, reflect: true })
+  @property({ type: String })
   backType = "text";
 
-  @property({ type: String, attribute: true, reflect: true })
+  @property({ type: String })
   frontContent = "";
 
-  @property({ type: String, attribute: true, reflect: true })
+  @property({ type: String })
   backContent = "";
 
   @property({ type: String, attribute: true, reflect: true })
@@ -500,103 +561,177 @@ export class WwFlashcards extends LitElementWw {
   @property({ type: String, attribute: true, reflect: true })
   backTextColor = "black";
 
-  @property({ type: Number, attribute: true, reflect: true })
+  @property({ type: Number })
   currentPosition = 0;
+
+  @property({ type: Number })
+  positiveReviewed = 0;
+
+  @property({ type: Number })
+  negativeReviewed = 0;
+
+  @property({ type: Number })
+  reviewed = 0;
 
   @property({ type: Number, attribute: true, reflect: true })
   timer = 10;
 
-  @property({ type: Number, attribute: true, reflect: true })
+  @property({ type: Number })
   timeLeft = this.timer; //running timer
 
-  @property({ type: Number, attribute: true, reflect: true })
+  @property({ type: Number })
   timerID;
 
-  @property({ type: Boolean, attribute: true, reflect: true }) isReviewingDeck =
-    false;
+  @property({ type: Boolean }) isReviewingDeck = false;
 
-  @property({ type: Boolean, attribute: true, reflect: true }) isShowingFront =
-    true;
+  @property({ type: Boolean }) isShowingFront = true;
+
+  @property({ type: Boolean }) isEditingDeck = false;
+
+  @property({ type: Boolean }) isEditingCard = false;
 
   @property({ type: Boolean, attribute: true, reflect: true }) enableTimer =
     true;
 
-  @property({ type: Boolean, attribute: true, reflect: true }) reviewStarted =
-    false;
+  @property({ type: Boolean }) reviewStarted = false;
+
+  @property({ type: Boolean }) deckExisted = false;
+
+  @property({ type: Boolean }) cardExisted = false;
+
+  @property({ type: Boolean }) viewingCardFromList = false;
 
   @property({ type: String, attribute: true, reflect: true }) feedbackStyle =
     "emoji";
 
-  @property({ type: Boolean, attribute: true, reflect: true }) timerIcon =
-    "pause-circle";
+  @property({ type: String }) timerIcon = "pause-circle";
 
   loadDecksFromLocalStorage() {
-    const decks = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key.startsWith("deck_")) {
-        const serializedDeck = localStorage.getItem(key);
-        const deck = Deck.fromJSON(JSON.parse(serializedDeck));
-        decks.push(deck);
+    // Get the array of decks from localStorage
+    const localStorageDecks =
+      JSON.parse(localStorage.getItem("deckCollection")) || [];
+
+    // Create a new array with the values from this.deckCollection
+    let updatedDeckCollection = this.deckCollection
+      ? [...this.deckCollection]
+      : [];
+
+    // Update decks in updatedDeckCollection with properties from localStorage
+    for (const localStorageDeck of localStorageDecks) {
+      const existingDeckIndex = updatedDeckCollection.findIndex(
+        (deck) => deck.objectId === localStorageDeck.objectId
+      );
+
+      if (existingDeckIndex !== -1) {
+        // Deck exists in updatedDeckCollection, update its cards
+        const existingDeck = updatedDeckCollection[existingDeckIndex];
+
+        // Loop through the cards of the existing deck
+        for (const localStorageCard of localStorageDeck.cards) {
+          const existingCardIndex = existingDeck.cards.findIndex(
+            (card) => card.objectId === localStorageCard.objectId
+          );
+
+          if (existingCardIndex !== -1) {
+            // Card exists in the existing deck, update it
+            existingDeck.cards[existingCardIndex] =
+              Flashcard.fromJSON(localStorageCard);
+          } else {
+            // Card doesn't exist in the existing deck, add it
+            existingDeck.cards = [
+              ...existingDeck.cards,
+              Flashcard.fromJSON(localStorageCard),
+            ];
+          }
+        }
+      } else {
+        // Deck doesn't exist in updatedDeckCollection, add it
+        updatedDeckCollection = [
+          ...updatedDeckCollection,
+          Deck.fromJSON(localStorageDeck),
+        ];
       }
     }
-    return decks;
+
+    // Save the updated deckCollection back to localStorage
+    localStorage.setItem(
+      "deckCollection",
+      JSON.stringify(updatedDeckCollection)
+    );
+
+    // Update this.deckCollection with the complete deckCollection from localStorage
+    return updatedDeckCollection;
   }
 
   loadCardsFromLocalStorage() {
-    const cardsListJSON = localStorage.getItem("cards_list");
-    if (cardsListJSON) {
-      try {
-        const cardsList = JSON.parse(cardsListJSON);
-        if (Array.isArray(cardsList)) {
-          return cardsList; // Return the array as is
-        } else {
-          console.error("Data in local storage is not an array.");
-        }
-      } catch (error) {
-        console.error("Error parsing data from local storage:", error);
+    // Get the array of cards from localStorage
+    const localStorageCards =
+      JSON.parse(localStorage.getItem("cards_list")) || [];
+
+    // Create a new array with the values from this.cardList
+    let updatedCardList = this.cardList ? [...this.cardList] : [];
+
+    // Update cards in updatedCardList with properties from localStorage
+    for (const localStorageCard of localStorageCards) {
+      const existingCardIndex = updatedCardList.findIndex(
+        (card) => card.objectId === localStorageCard.objectId
+      );
+
+      if (existingCardIndex !== -1) {
+        // update if exist
+        updatedCardList[existingCardIndex] =
+          Flashcard.fromJSON(localStorageCard);
+      } else {
+        // add if not
+        updatedCardList = [
+          ...updatedCardList,
+          Flashcard.fromJSON(localStorageCard),
+        ];
       }
-    } else {
-      console.log("No data found in local storage.");
     }
 
-    // Return an empty array if there's an issue or no data
-    return [];
+    // Save the updated cards_list back to localStorage
+    localStorage.setItem("cards_list", JSON.stringify(updatedCardList));
+
+    // Update this.cardList with the complete cards_list from localStorage
+    return updatedCardList;
   }
 
-  loadSettingsFromLocalStorage() {
-    const existingSettingsJSON = localStorage.getItem("settings");
-    if (existingSettingsJSON) {
-      const existingSettings = JSON.parse(existingSettingsJSON);
+  // loadSettingsFromLocalStorage() {
+  //   const existingSettingsJSON = localStorage.getItem("settings");
+  //   if (existingSettingsJSON) {
+  //     const existingSettings = JSON.parse(existingSettingsJSON);
 
-      this.frontColor = existingSettings["frontColor"] || "lightgreen";
-      this.frontBorderColor = existingSettings["frontBorderColor"] || "black";
-      this.frontTextColor = existingSettings["frontTextColor"] || "black";
-      this.backColor = existingSettings["backColor"] || "lightblue";
-      this.backBorderColor = existingSettings["backBorderColor"] || "red";
-      this.backTextColor = existingSettings["backTextColor"] || "black";
-      this.enableTimer = existingSettings["enableTimer"] || true;
-      this.feedbackStyle = existingSettings["feedbackStyle"] || "emoji";
-      this.timer = existingSettings["timeDuration"] || 10;
-    }
-  }
-
-  // loadProgressFromLocalStorage() {
-  //   const progressJSON = localStorage.getItem("progress");
-  //   if (progressJSON) {
-  //     const progress = JSON.parse(progressJSON);
-
-  //     this.selectedDeck = progress["selectedDeck"];
+  //     this.frontColor = existingSettings["frontColor"] || "lightgreen";
+  //     this.frontBorderColor = existingSettings["frontBorderColor"] || "black";
+  //     this.frontTextColor = existingSettings["frontTextColor"] || "black";
+  //     this.backColor = existingSettings["backColor"] || "lightblue";
+  //     this.backBorderColor = existingSettings["backBorderColor"] || "red";
+  //     this.backTextColor = existingSettings["backTextColor"] || "black";
+  //     this.enableTimer = existingSettings["enableTimer"] || true;
+  //     this.feedbackStyle = existingSettings["feedbackStyle"] || "emoji";
+  //     this.timer = existingSettings["timeDuration"] || 10;
   //   }
   // }
+
+  loadProgressFromLocalStorage() {
+    const progressJSON = localStorage.getItem("progress");
+    if (progressJSON) {
+      const progress = JSON.parse(progressJSON);
+
+      this.reviewed = progress["reviewed"];
+      this.positiveReviewed = progress["positiveReviewed"];
+      this.negativeReviewed = progress["negativeReviewed"];
+    }
+  }
 
   constructor() {
     super();
     this.timerID = null;
     this.deckCollection = this.loadDecksFromLocalStorage();
     this.cardList = this.loadCardsFromLocalStorage();
-    this.loadSettingsFromLocalStorage();
-    // this.loadProgressFromLocalStorage();
+    //this.loadSettingsFromLocalStorage();
+    this.loadProgressFromLocalStorage();
   }
 
   updated(changedProperties) {
@@ -643,35 +778,39 @@ export class WwFlashcards extends LitElementWw {
     }
   }
 
-  addCheckedCardsToDeck() {
-    // Filter the checked cards
-    const checkedCards = this.cardList.filter((card) => card.checked);
+  addCardToDeck(addingCard) {
+    if (
+      !this.selectedDeck.cards.some(
+        (card) => card.objectId === addingCard.objectId
+      )
+    ) {
+      this.selectedDeck.addCard(
+        addingCard.objectId,
+        addingCard.frontContent,
+        addingCard.backContent,
+        addingCard.frontType,
+        addingCard.backType,
+        addingCard.score,
+        addingCard.easinessFactor,
+        addingCard.repNumber,
+        addingCard.interval,
+        addingCard.lastReview,
+        addingCard.nextReview,
+        addingCard.editable
+      );
+    }
 
-    // Add the checked cards to the current deck
-    checkedCards.forEach((card) => {
-      this.selectedDeck.addCard(card.frontContent, card.backContent);
-    });
+    localStorage.setItem("deckCollection", JSON.stringify(this.deckCollection));
 
-    // Clear the checked state
-    checkedCards.forEach((card) => (card.checked = false));
-
-    localStorage.setItem(
-      `deck_${this.selectedDeck.name}`,
-      JSON.stringify(this.selectedDeck)
-    );
-    // Trigger a re-render to reflect the changes
     this.requestUpdate();
   }
 
-  createDeck(name) {
-    const newDeck = new Deck(name);
-    newDeck.name = this.deckName;
-    this.deckCollection.push(newDeck);
-    // Serialize the newDeck object to JSON
-    const serializedDeck = JSON.stringify(newDeck);
+  createDeck(objectId, name, editable) {
+    const newDeck = new Deck(objectId, name, editable);
 
-    // Save the serialized deck to local storage
-    localStorage.setItem(`deck_${newDeck.name}`, serializedDeck);
+    this.deckCollection = [...this.deckCollection, newDeck];
+
+    localStorage.setItem("deckCollection", JSON.stringify(this.deckCollection));
 
     this.deckName = "";
     this.requestUpdate();
@@ -680,16 +819,13 @@ export class WwFlashcards extends LitElementWw {
   handleDeckSelect(deck) {
     this.selectedDeck = deck;
     this.reviewList = this.getOverdueCards(this.selectedDeck?.cards);
-    const progressJSON = localStorage.getItem("progress");
-    const progress = JSON.parse(progressJSON) || {};
-    progress["selectedDeck"] = this.selectedDeck;
-    localStorage.setItem("progress", JSON.stringify(progress));
     this.currentPosition = 0;
     this.renderRoot.querySelector("sl-tab-group").show("card");
   }
 
   handleReviewButtonClick(value) {
     const currentCard = this.getCurrentCard();
+    this.reviewed += 1;
 
     if (currentCard) {
       currentCard.score = value;
@@ -698,6 +834,7 @@ export class WwFlashcards extends LitElementWw {
       currentCard.lastReview = new Date(currentCard.lastReview);
 
       if (value >= 3) {
+        this.positiveReviewed += 1;
         if (currentCard.repNumber == 0) {
           currentCard.interval = 1;
           currentCard.nextReview.setDate(
@@ -715,6 +852,7 @@ export class WwFlashcards extends LitElementWw {
         }
         currentCard.repNumber++;
       } else {
+        this.negativeReviewed += 1;
         currentCard.repNumber = 0;
         currentCard.interval = 1;
         currentCard.nextReview.setDate(
@@ -730,74 +868,39 @@ export class WwFlashcards extends LitElementWw {
         currentCard.easinessFactor = 1.3;
       }
 
-      const cardsListJSON = localStorage.getItem("cards_list");
-
-      if (cardsListJSON) {
-        try {
-          let cardsList = JSON.parse(cardsListJSON);
-          if (Array.isArray(cardsList)) {
-            // Find the card in the array and update its properties
-            const cardIndex = cardsList.findIndex(
-              (card) => card.frontContent === currentCard.frontContent
-            );
-
-            if (cardIndex !== -1) {
-              cardsList[cardIndex] = currentCard;
-
-              // Save the updated cardsList back to local storage
-              localStorage.setItem("cards_list", JSON.stringify(cardsList));
-            }
-          } else {
-            console.error("Data in local storage is not an array.");
-          }
-        } catch (error) {
-          console.error("Error parsing data from local storage:", error);
-        }
-      } else {
-        console.log("No data found in local storage.");
+      const cardListIndex = this.cardList.findIndex(
+        (card) => card.objectId === currentCard.objectId
+      );
+      if (cardListIndex !== -1) {
+        this.cardList[cardListIndex] = currentCard;
       }
 
-      const deckKey = `deck_${this.selectedDeck.name}`;
-      const deckJSON = localStorage.getItem(deckKey);
-
-      if (deckJSON) {
-        try {
-          const deck = JSON.parse(deckJSON);
-          if (deck && Array.isArray(deck.cards)) {
-            // Find the card in the deck's cards array and update its properties
-            const cardIndex = deck.cards.findIndex(
-              (card) => card.frontContent === currentCard.frontContent
-            );
-
-            if (cardIndex !== -1) {
-              deck.cards[cardIndex] = currentCard;
-
-              // Save the updated deck back to local storage
-              localStorage.setItem(deckKey, JSON.stringify(deck));
-            }
-          } else {
-            console.error(
-              `Data for deck '${this.selectedDeck.name}' is missing or not an array.`
-            );
-          }
-        } catch (error) {
-          console.error(
-            `Error parsing data for deck '${this.selectedDeck.name}' from local storage:`,
-            error
-          );
-        }
-      } else {
-        console.log(
-          `No data found for deck '${this.selectedDeck.name}' in local storage.`
-        );
+      const selectedDeckIndex = this.selectedDeck.cards.findIndex(
+        (card) => card.objectId === currentCard.objectId
+      );
+      if (selectedDeckIndex !== -1) {
+        this.selectedDeck.cards[selectedDeckIndex] = currentCard;
       }
+
+      localStorage.setItem("cards_list", JSON.stringify(this.cardList));
+      localStorage.setItem(
+        "deckCollection",
+        JSON.stringify(this.deckCollection)
+      );
+
+      const progressData = JSON.parse(localStorage.getItem("progress")) || {};
+      progressData.reviewed = this.reviewed;
+      progressData.negativeReviewed = this.negativeReviewed;
+      progressData.positiveReviewed = this.positiveReviewed;
+      localStorage.setItem("progress", JSON.stringify(progressData));
 
       this.requestUpdate();
       this.slideRight();
     }
   }
 
-  handleAddCard(
+  createCard(
+    objectId,
     frontContent,
     backContent,
     frontType,
@@ -807,46 +910,11 @@ export class WwFlashcards extends LitElementWw {
     repNumber,
     interval,
     lastReview,
-    nextReview
+    nextReview,
+    editable
   ) {
     this.selectedDeck?.addCard(
-      frontContent,
-      backContent,
-      frontType,
-      backType,
-      score,
-      easinessFactor,
-      repNumber,
-      interval,
-      lastReview,
-      nextReview
-    );
-
-    this.frontContent = "";
-    this.backContent = "";
-
-    localStorage.setItem(
-      `deck_${this.selectedDeck.name}`,
-      JSON.stringify(this.selectedDeck)
-    );
-
-    this.cardList = [
-      ...this.cardList,
-      {
-        frontContent,
-        backContent,
-        frontType,
-        backType,
-        score,
-        easinessFactor,
-        repNumber,
-        interval,
-        lastReview,
-        nextReview,
-      },
-    ];
-    const cards_list = JSON.parse(localStorage.getItem("cards_list")) || [];
-    cards_list.push({
+      objectId,
       frontContent,
       backContent,
       frontType,
@@ -857,21 +925,129 @@ export class WwFlashcards extends LitElementWw {
       interval,
       lastReview,
       nextReview,
-    });
-    localStorage.setItem("cards_list", JSON.stringify(cards_list));
+      editable
+    );
 
+    const newCard = new Flashcard(
+      objectId,
+      frontContent,
+      backContent,
+      frontType,
+      backType,
+      score,
+      easinessFactor,
+      repNumber,
+      interval,
+      lastReview,
+      nextReview,
+      editable
+    );
+
+    this.cardList = [...this.cardList, newCard];
+
+    localStorage.setItem("cards_list", JSON.stringify(this.cardList));
+    localStorage.setItem("deckCollection", JSON.stringify(this.deckCollection));
+
+    this.frontContent = "";
+    this.backContent = "";
+    this.frontType = "text";
+    this.backType = "text";
     this.requestUpdate();
   }
 
-  handleCheckboxChange(event, card) {
-    if (event.target.checked) {
-      this.checkBoxList.push(card);
-    } else {
-      const index = this.checkBoxList.indexOf(card);
-      if (index > -1) {
-        this.checkBoxList.splice(index, 1);
+  handleDeckNameChange(event: InputEvent) {
+    this.deckName = (event.target as HTMLInputElement).value;
+    this.deckExisted = false;
+
+    if (this.deckCollection.length > 0) {
+      for (let d = 0; d < this.deckCollection.length; d++) {
+        if (this.deckCollection[d].name === this.deckName) {
+          this.deckExisted = true;
+          break;
+        }
       }
     }
+  }
+
+  handleDeckNameEdit(deck) {
+    this.isEditingDeck = true;
+    this.deckName = deck.name;
+    this.editingDeck = deck;
+  }
+
+  handleCardEdit(card) {
+    this.isEditingCard = true;
+    this.editingCard = card;
+    this.frontContent = card.frontContent;
+    this.backContent = card.backContent;
+    this.frontType = card.frontType;
+    this.backType = card.backType;
+  }
+
+  handleViewCardFromList(card) {
+    this.viewingCardFromList = true;
+    this.currentPosition = this.cardList.indexOf(card);
+  }
+
+  handleViewCardFromDeck(card) {
+    this.viewingCardFromList = false;
+    this.currentPosition = this.selectedDeck.cards.indexOf(card);
+  }
+
+  updateDeck() {
+    const index = this.deckCollection.findIndex(
+      (d) => d.objectId === this.editingDeck.objectId
+    );
+
+    this.deckCollection[index].name = this.deckName;
+
+    localStorage.setItem("deckCollection", JSON.stringify(this.deckCollection));
+
+    this.isEditingDeck = false;
+    this.deckName = "";
+    this.requestUpdate();
+  }
+
+  updateCard() {
+    const indexFromDeck = this.selectedDeck.cards.findIndex(
+      (d) =>
+        d.frontContent === this.editingCard.frontContent &&
+        d.backContent === this.editingCard.backContent
+    );
+
+    const indexFromList = this.cardList.findIndex(
+      (d) =>
+        d.frontContent === this.editingCard.frontContent &&
+        d.backContent === this.editingCard.backContent
+    );
+
+    const updatedCard = new Flashcard(
+      this.editingCard.objectId,
+      this.frontContent,
+      this.backContent,
+      this.frontType,
+      this.backType,
+      this.editingCard.score,
+      this.editingCard.easinessFactor,
+      this.editingCard.repNumber,
+      this.editingCard.interval,
+      this.editingCard.lastReview,
+      this.editingCard.nextReview,
+      this.editingCard.editable
+    );
+
+    if (indexFromDeck > -1) {
+      this.selectedDeck.cards[indexFromDeck] = updatedCard;
+    }
+
+    this.cardList[indexFromList] = updatedCard;
+
+    localStorage.setItem("deckCollection", JSON.stringify(this.deckCollection));
+    localStorage.setItem("cards_list", JSON.stringify(this.cardList));
+
+    this.isEditingCard = false;
+    this.frontContent = "";
+    this.backContent = "";
     this.requestUpdate();
   }
 
@@ -890,36 +1066,70 @@ export class WwFlashcards extends LitElementWw {
     }
   }
 
-  deleteSelectedCards() {
+  removeSelectedCardsFromDeck(deleteCard) {
     this.selectedDeck.cards = this.selectedDeck.cards.filter(
-      (card) => !this.checkBoxList.includes(card)
-    );
-    this.checkBoxList = [];
-
-    localStorage.setItem(
-      `deck_${this.selectedDeck.name}`,
-      JSON.stringify(this.selectedDeck)
+      (card) => card.objectId !== deleteCard.objectId
     );
 
-    const cards_list = JSON.parse(localStorage.getItem("cards_list")) || [];
-    const updatedAllCards = cards_list.filter(
-      (card) =>
-        !this.checkBoxList.some(
-          (selectedCard) => selectedCard.frontContent === card.frontContent
-        )
-    );
-    localStorage.setItem("cards_list", JSON.stringify(updatedAllCards));
-    this.requestUpdate();
+    localStorage.setItem("deckCollection", JSON.stringify(this.deckCollection));
+
     this.currentPosition = 0;
+    this.requestUpdate();
+  }
+
+  deleteSelectedCardsFromList(deleteCard) {
+    this.deckCollection.forEach((deck) => {
+      deck.cards = deck.cards.filter(
+        (card) => card.objectId !== deleteCard.objectId
+      );
+    });
+
+    if (this.selectedDeck) {
+      this.selectedDeck.cards = this.selectedDeck.cards.filter(
+        (card) => card.objectId !== deleteCard.objectId
+      );
+    }
+
+    this.cardList = this.cardList.filter(
+      (card) => card.objectId !== deleteCard.objectId
+    );
+
+    localStorage.setItem("cards_list", JSON.stringify(this.cardList));
+    localStorage.setItem("deckCollection", JSON.stringify(this.deckCollection));
+
+    this.currentPosition = 0;
+    this.requestUpdate();
+  }
+
+  deleteSelectedDeck(deleteDeck) {
+    this.deckCollection = this.deckCollection.filter(
+      (deck) => deck.objectId !== deleteDeck.objectId
+    );
+
+    localStorage.setItem("deckCollection", JSON.stringify(this.deckCollection));
   }
 
   addFrontContent(event: InputEvent) {
     this.frontContent = (event.target as HTMLInputElement).value;
+
+    this.cardExisted = this.cardList.some(
+      (card) =>
+        card.frontContent === this.frontContent &&
+        card.backContent === this.backContent
+    );
+
     this.requestUpdate();
   }
 
   addBackContent(event: InputEvent) {
     this.backContent = (event.target as HTMLInputElement).value;
+
+    this.cardExisted = this.cardList.some(
+      (card) =>
+        card.frontContent === this.frontContent &&
+        card.backContent === this.backContent
+    );
+
     this.requestUpdate();
   }
 
@@ -934,6 +1144,10 @@ export class WwFlashcards extends LitElementWw {
   };
 
   getCurrentCard() {
+    if (this.viewingCardFromList) {
+      return this.cardList[this.currentPosition];
+    }
+
     if (!this.isReviewingDeck) {
       return this.selectedDeck?.cards?.length > 0
         ? this.selectedDeck?.cards[this.currentPosition]
@@ -948,52 +1162,59 @@ export class WwFlashcards extends LitElementWw {
   }
 
   getUrlType(url: string) {
-    const inputURL = new URL(url);
-    const ext = inputURL.pathname.slice(inputURL.pathname.lastIndexOf(".") + 1);
-    const urlType = mime.getType(ext);
-    if (
-      urlType === "image/apng" ||
-      urlType === "image/avif" ||
-      urlType === "image/gif" ||
-      urlType === "image/jpg" ||
-      urlType === "image/jpeg" ||
-      urlType === "image/jfif" ||
-      urlType === "image/pjpeg" ||
-      urlType === "image/pjp" ||
-      urlType === "image/png" ||
-      urlType === "image/svg" ||
-      urlType === "image/webp"
-    ) {
-      return { type: "image", mimeType: urlType };
+    try {
+      const inputURL = new URL(url);
+      const ext = inputURL.pathname.slice(
+        inputURL.pathname.lastIndexOf(".") + 1
+      );
+      const urlType = mime.getType(ext);
+      if (
+        urlType === "image/apng" ||
+        urlType === "image/avif" ||
+        urlType === "image/gif" ||
+        urlType === "image/jpg" ||
+        urlType === "image/jpeg" ||
+        urlType === "image/jfif" ||
+        urlType === "image/pjpeg" ||
+        urlType === "image/pjp" ||
+        urlType === "image/png" ||
+        urlType === "image/svg" ||
+        urlType === "image/webp"
+      ) {
+        return { type: "image", mimeType: urlType };
+      }
+      if (
+        urlType === "video/mp4" ||
+        urlType === "video/avi" ||
+        urlType === "video/mov" ||
+        urlType === "video/mpg" ||
+        urlType === "video/3gp" ||
+        urlType === "video/mpeg" ||
+        urlType === "video/m4v" ||
+        urlType === "video/m4p" ||
+        urlType === "video/webm" ||
+        urlType === "video/ogv" ||
+        urlType === "video/ogg"
+      ) {
+        return { type: "video", mimeType: urlType };
+      }
+      if (
+        urlType === "audio/mp3" ||
+        urlType === "audio/mp4" ||
+        urlType === "audio/wav" ||
+        urlType === "audio/flac" ||
+        urlType === "audio/aac" ||
+        urlType === "audio/mpeg" ||
+        urlType === "audio/webm" ||
+        urlType === "audio/ogg"
+      ) {
+        return { type: "audio", mimeType: urlType };
+      }
+
+      if (urlType === null) return { type: "iframe", mimeType: urlType };
+    } catch {
+      return null;
     }
-    if (
-      urlType === "video/mp4" ||
-      urlType === "video/avi" ||
-      urlType === "video/mov" ||
-      urlType === "video/mpg" ||
-      urlType === "video/3gp" ||
-      urlType === "video/mpeg" ||
-      urlType === "video/m4v" ||
-      urlType === "video/m4p" ||
-      urlType === "video/webm" ||
-      urlType === "video/ogv" ||
-      urlType === "video/ogg"
-    ) {
-      return { type: "video", mimeType: urlType };
-    }
-    if (
-      urlType === "audio/mp3" ||
-      urlType === "audio/mp4" ||
-      urlType === "audio/wav" ||
-      urlType === "audio/flac" ||
-      urlType === "audio/aac" ||
-      urlType === "audio/mpeg" ||
-      urlType === "audio/webm" ||
-      urlType === "audio/ogg"
-    ) {
-      return { type: "audio", mimeType: urlType };
-    }
-    if (urlType === null) return { type: "iframe", mimeType: urlType };
   }
 
   convertUrlLink = (inputLink) => {
@@ -1018,38 +1239,43 @@ export class WwFlashcards extends LitElementWw {
       if (currentCard.frontType === "text") {
         return html`<h1>${currentCard.frontContent}</h1>`;
       } else if (currentCard.frontType === "url") {
-        const { type, mimeType } = this.getUrlType(currentCard.frontContent);
+        if (this.getUrlType(currentCard.frontContent)) {
+          const { type, mimeType } = this.getUrlType(currentCard.frontContent);
 
-        if (type == "image") {
-          return html`<img
-            type=${currentCard.frontType}
-            src=${this.test(currentCard.frontContent)}
-          />`;
-        }
-        if (type == "video") {
-          return html`<video controls>
-            <source
+          if (type == "image") {
+            return html`<img
+              type=${currentCard.frontType}
               src=${this.test(currentCard.frontContent)}
-              type=${mimeType}
-            />
-          </video>`;
+            />`;
+          }
+
+          if (type == "video") {
+            return html`<video controls>
+              <source
+                src=${this.test(currentCard.frontContent)}
+                type=${mimeType}
+              />
+            </video>`;
+          }
+
+          if (type == "audio") {
+            return html` <sl-icon
+                name="soundwave"
+                style="font-size: 200px;"
+              ></sl-icon>
+              <audio controls>
+                <source src=${currentCard.frontContent} type=${mimeType} />
+              </audio>`;
+          }
+
+          if (type == "iframe") {
+            return html`<iframe
+              src=${this.convertUrlLink(currentCard.frontContent)}
+            ></iframe>`;
+          }
+        } else {
+          return html`<h1>URL invalid</h1>`;
         }
-        if (type == "audio") {
-          return html` <sl-icon
-              name="soundwave"
-              style="font-size: 200px;"
-            ></sl-icon>
-            <audio controls>
-              <source src=${currentCard.frontContent} type=${mimeType} />
-            </audio>`;
-        }
-        if (type == "iframe") {
-          return html`<iframe
-            src=${this.convertUrlLink(currentCard.frontContent)}
-          ></iframe>`;
-        }
-      } else {
-        return html`<h1>No content available</h1>`;
       }
     } else {
       return html`<h1>First create a deck</h1>`;
@@ -1065,38 +1291,43 @@ export class WwFlashcards extends LitElementWw {
       if (currentCard.backType === "text") {
         return html`<h1>${currentCard.backContent}</h1>`;
       } else if (currentCard.backType === "url") {
-        const { type, mimeType } = this.getUrlType(currentCard.backContent);
+        if (this.getUrlType(currentCard.backContent)) {
+          const { type, mimeType } = this.getUrlType(currentCard.backContent);
 
-        if (type == "image") {
-          return html`<img
-            type=${currentCard.backType}
-            src=${this.test(currentCard.backContent)}
-          />`;
-        }
-        if (type == "video") {
-          return html`<video controls>
-            <source
+          if (type == "image") {
+            return html`<img
+              type=${currentCard.backType}
               src=${this.test(currentCard.backContent)}
-              type=${mimeType}
-            />
-          </video>`;
+            />`;
+          }
+
+          if (type == "video") {
+            return html`<video controls>
+              <source
+                src=${this.test(currentCard.backContent)}
+                type=${mimeType}
+              />
+            </video>`;
+          }
+
+          if (type == "audio") {
+            return html` <sl-icon
+                name="soundwave"
+                style="font-size: 200px;"
+              ></sl-icon>
+              <audio controls>
+                <source src=${currentCard.backContent} type=${mimeType} />
+              </audio>`;
+          }
+
+          if (type == "iframe") {
+            return html`<iframe
+              src=${this.convertUrlLink(currentCard.backContent)}
+            ></iframe>`;
+          }
+        } else {
+          return html`<h1>URL invalid</h1>`;
         }
-        if (type == "audio") {
-          return html` <sl-icon
-              name="soundwave"
-              style="font-size: 200px;"
-            ></sl-icon>
-            <audio controls>
-              <source src=${currentCard.backContent} type=${mimeType} />
-            </audio>`;
-        }
-        if (type == "iframe") {
-          return html`<iframe
-            src=${this.convertUrlLink(currentCard.backContent)}
-          ></iframe>`;
-        }
-      } else {
-        return html`<h1>No content available</h1>`;
       }
     } else {
       return html`<h1>Then add flashcards to your deck</h1>`;
@@ -1117,10 +1348,6 @@ export class WwFlashcards extends LitElementWw {
       this.currentPosition -= 1;
       this.requestUpdate();
     }
-    // } else {
-    //   this.currentPosition = this.selectedDeck?.cards?.length - 1;
-    //   this.requestUpdate();
-    // }
   };
 
   slideRight = () => {
@@ -1151,23 +1378,7 @@ export class WwFlashcards extends LitElementWw {
         this.requestUpdate();
       }
     }
-    // if (!this.isShowingFront) {
-    //   this.isShowingFront = !this.isShowingFront;
-    //   const element = this.renderRoot.querySelector(".fc");
-    //   element.classList.toggle("do_trick");
-    // }
-
-    // } else {
-    //   this.currentPosition = 0;
-    //   this.requestUpdate();
-    // }
-    // console.log(this.isShowingFront);
   };
-
-  handleCheckboxAdd(event, index) {
-    const isChecked = event.target.checked;
-    this.cardList[index].checked = isChecked;
-  }
 
   startCountdown() {
     if (this.timeLeft > 0) {
@@ -1215,8 +1426,15 @@ export class WwFlashcards extends LitElementWw {
       }
 
       this.toggleReview();
-    } else {
+    } else if (
+      this.reviewList.length === 0 &&
+      this.selectedDeck.cards.length > 0
+    ) {
       const container = this.renderRoot.querySelector(".no-more-card");
+      const alert = container.querySelector("sl-alert");
+      alert.show();
+    } else if (this.selectedDeck.cards.length === 0) {
+      const container = this.renderRoot.querySelector(".empty-deck");
       const alert = container.querySelector("sl-alert");
       alert.show();
     }
@@ -1269,33 +1487,30 @@ export class WwFlashcards extends LitElementWw {
     const newColor = event.target.value;
 
     this[colorType] = newColor;
-
-    const existingSettingsJSON = localStorage.getItem("settings");
-    const existingSettings = JSON.parse(existingSettingsJSON) || {};
-
-    existingSettings[colorType] = newColor;
-
-    localStorage.setItem("settings", JSON.stringify(existingSettings));
   }
 
   handleTimerSwitchChange(event) {
     this.enableTimer = event.target.checked;
-
-    const existingSettingsJSON = localStorage.getItem("settings");
-    const existingSettings = JSON.parse(existingSettingsJSON) || {};
-
-    existingSettings["enableTimer"] = this.enableTimer;
-    localStorage.setItem("settings", JSON.stringify(existingSettings));
   }
 
   handleFeedbackStyleChange(event) {
     this.feedbackStyle = event.target.value;
+  }
 
-    const existingSettingsJSON = localStorage.getItem("settings");
-    const existingSettings = JSON.parse(existingSettingsJSON) || {};
+  calculateDateDistance(date) {
+    // Convert the input date string to a Date object
+    const targetDate = new Date(date);
 
-    existingSettings["feedbackStyle"] = this.feedbackStyle;
-    localStorage.setItem("settings", JSON.stringify(existingSettings));
+    // Get the current date and time
+    const currentDate = new Date();
+
+    // Calculate the time difference in milliseconds
+    const timeDifference = targetDate.getTime() - currentDate.getTime();
+
+    // Convert the time difference to days
+    const daysDifference = Math.ceil(timeDifference / (1000 * 60 * 60 * 24));
+
+    return daysDifference;
   }
 
   renderReviewButtons() {
@@ -1384,7 +1599,11 @@ export class WwFlashcards extends LitElementWw {
 
   handleTimerInput(event: Event) {
     const inputElement = event.target as HTMLInputElement;
-    this.timer = parseInt(inputElement.value, 10);
+    let timerValue = parseInt(inputElement.value, 10);
+
+    timerValue = Math.min(Math.max(timerValue, 5), 30);
+
+    this.timer = timerValue;
     this.timeLeft = this.timer;
 
     const existingSettingsJSON = localStorage.getItem("settings");
@@ -1421,7 +1640,7 @@ export class WwFlashcards extends LitElementWw {
           <div class="fc_container">
             <div class="slider">
               <sl-icon-button name="chevron-left" style="font-size: 4rem;" ?disabled=${
-                this.currentPosition === 0
+                this.currentPosition === 0 || !this.isShowingFront
               } @click=${this.slideLeft}></sl-icon-button>
             </div>
 
@@ -1433,8 +1652,10 @@ export class WwFlashcards extends LitElementWw {
 
             <div class="slider">
               <sl-icon-button name="chevron-right" style="font-size: 4rem;" ?disabled=${
-                this.currentPosition === this.selectedDeck?.cards?.length - 1 &&
-                !this.isReviewingDeck
+                (this.currentPosition ===
+                  this.selectedDeck?.cards?.length - 1 &&
+                  !this.isReviewingDeck) ||
+                !this.isShowingFront
               }  @click=${this.slideRight}></sl-icon-button>
             </div>
           </div>
@@ -1474,9 +1695,13 @@ export class WwFlashcards extends LitElementWw {
               <sl-details>
                 <h3 slot="summary">How to use</h3>
                 <ol>
-                  <li>First, you need to create a deck with a deck name in the deck tab, then create your cards of choice using 
-                  either text or other multimedia source url in the flashcard tab e.g. on a <a href="https://www.youtube.com/">YouTube</a> video 
-                  click on share and copy paste the url link to the input field </li>
+                  <li>First, you need to create a deck with a deck name in the deck tab, then you have two ways to fill your deck with cards: 
+                  <ul>
+                      <li>You can create your cards of choice using either text or other multimedia source url in the flashcard tab e.g. 
+                      on a <a href="https://www.youtube.com/">YouTube</a> video 
+                      click on share and copy paste the url link to the input field </li>
+                      <li>Or you can add cards from your card lists to the current deck</li>
+                    </ul>
                   <li>When you want to review a deck, simply choose it first then enter the review mode by clicking the review button. During a review session, try to 
                   recall the information on the other side of the showing card. There is a timer to indicate how much time left before the card flips itself. Be honest 
                   with yourself and rate your performance with the face emotions or scores at the bottom, since this is very important to help the algorithm to determine 
@@ -1530,42 +1755,86 @@ export class WwFlashcards extends LitElementWw {
                 type="text"
                 placeholder="Enter a new deck name"
                 pill
+                help-text=${this.deckExisted ? "Deck name already existed" : ""}
                 ?disabled=${this.isReviewingDeck}
                 .value=${this.deckName}
-                @input=${(event: InputEvent) =>
-                  (this.deckName = (event.target as HTMLInputElement).value)}
+                @sl-input=${this.handleDeckNameChange}
               ></sl-input>
 
               <sl-button class="new-deck-button" variant="primary"
                 @click=${(event: MouseEvent) => {
                   event.stopPropagation();
-                  this.createDeck(this.deckName);
+                  this.createDeck(
+                    Date.now() +
+                      "_" +
+                      Math.random().toString(36).substring(2, 9),
+                    this.deckName,
+                    this.editable
+                  );
                 }}
-                ?disabled=${!this.deckName}
+                ?disabled=${
+                  !this.deckName || this.deckExisted || this.isEditingDeck
+                }
               >
-                Create new deck</sl-button
+                <b>Create new deck</b></sl-button
+              >
+
+              <sl-button class="new-deck-button" variant="warning"
+                @click=${this.updateDeck}
+                ?disabled=${!this.isEditingDeck}
+              >
+                <b>Update deck name</b></sl-button
               >
 
               <sl-divider style="--width: 2px; --color: black;"></sl-divider>
 
-              <h2>Available deck: </h2>
-              <sl-select class="deck-select" placeholder="Select a deck"
-                value=${this.selectedDeck?.name}
-                pill
-                @sl-change=${(e) => (this.selectedDeck = e.target.value)}
-                ?disabled=${
-                  this.deckCollection.length === 0 || this.isReviewingDeck
-                }
-              >
-                ${this.deckCollection.map(
-                  (deck) =>
-                    html`<sl-option
-                      value=${deck.name}
-                      @click=${() => this.handleDeckSelect(deck)}
-                      >${deck.name}</sl-option
-                    >`
-                )}
-              </sl-select>
+              <sl-details ?disabled=${
+                this.isReviewingDeck || this.isEditingDeck
+              } open>
+                <h3 slot="summary">Available decks </h3>
+                <sl-tree>
+                   ${this.deckCollection.map(
+                     (deck) => html`
+                       <sl-tree-item class="custom_list">
+                         ${deck.name + `(` + deck.cards.length + `)`}
+                         <div class="button-in-list-container">
+                           <sl-tooltip content="Use deck" placement="right">
+                             <sl-icon-button
+                               style="font-size: 1.3rem; color: #123499;"
+                               name="box-arrow-in-right"
+                               ?disabled=${this.isReviewingDeck}
+                               @click=${() => this.handleDeckSelect(deck)}
+                             >
+                             </sl-icon-button>
+                           </sl-tooltip>
+
+                           <sl-tooltip content="Edit name" placement="right">
+                             <sl-icon-button
+                               style="font-size: 1.3rem; color: gold;"
+                               name="pencil-fill"
+                               ?disabled=${(!this.editable && deck.editable) ||
+                               this.isReviewingDeck}
+                               @click=${() => this.handleDeckNameEdit(deck)}
+                             >
+                             </sl-icon-button>
+                           </sl-tooltip>
+
+                           <sl-tooltip content="Delete deck" placement="right">
+                             <sl-icon-button
+                               style="font-size: 1.3rem; color: red;"
+                               name="trash-fill"
+                               ?disabled=${(!this.editable && deck.editable) ||
+                               this.isReviewingDeck}
+                               @click=${() => this.deleteSelectedDeck(deck)}
+                             >
+                             </sl-icon-button>
+                           </sl-tooltip>
+                         </div>
+                       </sl-tree-item>
+                     `
+                   )}
+                </sl-tree>
+              </sl-details> 
             </sl-tab-panel>
 
             <sl-tab-panel name="card">
@@ -1587,7 +1856,7 @@ export class WwFlashcards extends LitElementWw {
                 <div class="input">
                   <sl-select
                     id="frontContentTypeSelect"
-                    value="text"
+                    .value=${this.frontType}
                     @sl-change=${this.handleSelectTypeChange}
                     pill
                     ?disabled=${
@@ -1613,7 +1882,7 @@ export class WwFlashcards extends LitElementWw {
                 <div class="input">
                   <sl-select
                     id="backContentTypeSelect"
-                    value="text"
+                    .value=${this.backType}
                     @sl-change=${this.handleSelectTypeChange}
                     pill
                     ?disabled=${
@@ -1628,6 +1897,7 @@ export class WwFlashcards extends LitElementWw {
                     type="text"
                     .value=${this.backContent}
                     @sl-input=${this.addBackContent}
+                    help-text=${this.cardExisted ? "Card already existed" : ""}
                     pill
                     ?disabled=${
                       this.isReviewingDeck || this.selectedDeck === null
@@ -1638,7 +1908,10 @@ export class WwFlashcards extends LitElementWw {
 
               <sl-button class="new-card-button" variant="primary"
                 @click=${() =>
-                  this.handleAddCard(
+                  this.createCard(
+                    Date.now() +
+                      "-" +
+                      Math.random().toString(36).substring(2, 10),
                     this.frontContent,
                     this.backContent,
                     this.frontType,
@@ -1648,10 +1921,27 @@ export class WwFlashcards extends LitElementWw {
                     0,
                     0,
                     new Date(),
-                    new Date()
+                    new Date(),
+                    this.editable
                   )}
-                  ?disabled=${!this.frontContent || !this.backContent}
-                >Create new card</sl-button
+                  ?disabled=${
+                    !this.frontContent ||
+                    !this.backContent ||
+                    this.cardExisted ||
+                    this.isEditingCard
+                  }
+                ><b>Create new card</b></sl-button
+              >
+
+              <sl-button class="new-card-button" variant="warning"
+                @click=${() => this.updateCard()}
+                ?disabled=${
+                  !this.frontContent ||
+                  !this.backContent ||
+                  this.cardExisted ||
+                  !this.isEditingCard
+                }
+                ><b>Update card</b></sl-button
               >
 
               <sl-divider style="--width: 2px; --color: black;"></sl-divider>
@@ -1659,20 +1949,57 @@ export class WwFlashcards extends LitElementWw {
               <div class="deck-cards">
                 <sl-details ?disabled=${
                   this.isReviewingDeck || this.selectedDeck === null
-                }>
-                  <h3 slot="summary">Cards in current deck</h3>
+                } open>
+                  <h3 slot="summary"><b>Cards in current deck</b></h3>
                   <sl-tree>
                     ${this.selectedDeck?.cards?.map(
                       (card) => html`
-                        <sl-tree-item>
-                          <label>
-                            <input
-                              type="checkbox"
-                              @change=${(event) =>
-                                this.handleCheckboxChange(event, card)}
-                            />
-                            ${card.frontContent}
-                          </label>
+                        <sl-tree-item class="custom_list">
+                          ${card.repNumber > 0
+                            ? `Card #` +
+                              this.selectedDeck.cards.indexOf(card) +
+                              `: avail. in ` +
+                              this.calculateDateDistance(card.nextReview) +
+                              ` day(s)`
+                            : `Card #` + this.selectedDeck.cards.indexOf(card)}
+                          <div class="button-in-list-container">
+                            <sl-tooltip content="View card" placement="right">
+                              <sl-icon-button
+                                style="font-size: 1.3rem; color: #123499;"
+                                name="search"
+                                ?disabled=${this.isReviewingDeck}
+                                @click=${() =>
+                                  this.handleViewCardFromDeck(card)}
+                              >
+                              </sl-icon-button>
+                            </sl-tooltip>
+
+                            <sl-tooltip content="Edit card" placement="right">
+                              <sl-icon-button
+                                style="font-size: 1.3rem; color: gold;"
+                                name="pencil-fill"
+                                ?disabled=${(!this.editable && card.editable) ||
+                                this.isReviewingDeck}
+                                @click=${() => this.handleCardEdit(card)}
+                              >
+                              </sl-icon-button>
+                            </sl-tooltip>
+
+                            <sl-tooltip
+                              content="Remove card from deck"
+                              placement="right"
+                            >
+                              <sl-icon-button
+                                style="font-size: 1.3rem; color: red;"
+                                name="trash-fill"
+                                ?disabled=${(!this.editable && card.editable) ||
+                                this.isReviewingDeck}
+                                @click=${() =>
+                                  this.removeSelectedCardsFromDeck(card)}
+                              >
+                              </sl-icon-button>
+                            </sl-tooltip>
+                          </div>
                         </sl-tree-item>
                       `
                     )}
@@ -1680,24 +2007,16 @@ export class WwFlashcards extends LitElementWw {
                 </sl-details> 
               </div>
 
-              <sl-button class="delete-card-button" @click=${
-                this.deleteSelectedCards
-              } variant="primary" ?disabled=${
-      this.isReviewingDeck || this.selectedDeck === null
-    }
-                >Delete Cards</sl-button
-              >
-
-              <sl-button id="test" class="review-deck-button" @click=${
+              <sl-button class="review-deck-button" @click=${
                 this.handleReviewDeckClick
               } variant=${
       this.isReviewingDeck ? "warning" : "success"
     } ?disabled=${this.selectedDeck === null}
-                >${
+                ><b>${
                   this.isReviewingDeck
                     ? "Stop reviewing"
                     : "Review current deck"
-                }</sl-button
+                }</b></sl-button
               >
 
               <sl-divider style="--width: 2px; --color: black;"></sl-divider>
@@ -1709,30 +2028,68 @@ export class WwFlashcards extends LitElementWw {
                   <h3 slot="summary">Available cards</h3>
                   <sl-tree>
                   ${this.cardList.map(
-                    (card, index) => html`
-                      <sl-tree-item>
-                        <label>
-                          <input
-                            type="checkbox"
-                            @change=${(event) =>
-                              this.handleCheckboxAdd(event, index)}
-                          />
-                          ${card.frontContent}
-                        </label>
+                    (card) => html`
+                      <sl-tree-item class="custom_list">
+                        ${card.repNumber > 0
+                          ? `Card #` +
+                            this.cardList.indexOf(card) +
+                            `: avail. in ` +
+                            this.calculateDateDistance(card.nextReview) +
+                            ` day(s)`
+                          : `Card #` + this.cardList.indexOf(card)}
+                        <div class="button-in-list-container">
+                          <sl-tooltip
+                            content="Add to current deck"
+                            placement="right"
+                          >
+                            <sl-icon-button
+                              style="font-size: 1.3rem; color: green;"
+                              name="plus-square-fill"
+                              ?disabled=${this.isReviewingDeck}
+                              @click=${() => this.addCardToDeck(card)}
+                            >
+                            </sl-icon-button>
+                          </sl-tooltip>
+
+                          <sl-tooltip content="View card" placement="right">
+                            <sl-icon-button
+                              style="font-size: 1.3rem; color: #123499;"
+                              name="search"
+                              ?disabled=${this.isReviewingDeck}
+                              @click=${() => this.handleViewCardFromList(card)}
+                            >
+                            </sl-icon-button>
+                          </sl-tooltip>
+
+                          <sl-tooltip content="Edit card" placement="right">
+                            <sl-icon-button
+                              style="font-size: 1.3rem; color: gold;"
+                              name="pencil-fill"
+                              ?disabled=${(!this.editable && card.editable) ||
+                              this.isReviewingDeck}
+                              @click=${() => this.handleCardEdit(card)}
+                            >
+                            </sl-icon-button>
+                          </sl-tooltip>
+
+                          <sl-tooltip content="Delete card" placement="right">
+                            <sl-icon-button
+                              style="font-size: 1.3rem; color: red;"
+                              name="trash-fill"
+                              ?disabled=${(!this.editable && card.editable) ||
+                              this.isReviewingDeck}
+                              @click=${() =>
+                                this.deleteSelectedCardsFromList(card)}
+                            >
+                            </sl-icon-button>
+                          </sl-tooltip>
+                        </div>
                       </sl-tree-item>
                     `
                   )}
                   <sl-tree>
                 </sl-details>
               </div>
-
-              <sl-button class="add-current-button" @click=${
-                this.addCheckedCardsToDeck
-              } variant="primary" ?disabled=${
-      this.isReviewingDeck || this.selectedDeck === null
-    }
-                >Add to current deck</sl-button
-              >
 
               <div class="no-more-card">
                 <sl-alert variant="primary" duration="3000" closable>
@@ -1745,6 +2102,13 @@ export class WwFlashcards extends LitElementWw {
                 <sl-alert variant="success" duration="3000" closable>
                   <sl-icon slot="icon" name="check2-circle"></sl-icon>
                     Review session finished 
+                </sl-alert>
+              </div>
+
+              <div class="empty-deck">
+                <sl-alert variant="primary" duration="3000" closable>
+                  <sl-icon slot="icon" name="info-circle"></sl-icon>
+                    Please add more cards to the deck to start your review session 
                 </sl-alert>
               </div>
             </sl-tab-panel>
@@ -1811,6 +2175,7 @@ export class WwFlashcards extends LitElementWw {
                   <sl-input class="timer-input"
                       ?disabled=${this.isReviewingDeck}
                       type="number"
+                      pattern="[0-9]*"
                       max="30"
                       min="5"
                       pill
@@ -1831,15 +2196,49 @@ export class WwFlashcards extends LitElementWw {
                 >
                   <sl-radio-button pill value="emoji" ?disabled=${
                     this.isReviewingDeck
-                  } >Emoji Style</sl-radio-button>
+                  } ><b>Emoji Style</b></sl-radio-button>
                   <sl-radio-button pill value="numeric" ?disabled=${
                     this.isReviewingDeck
-                  } >Numeric Style</sl-radio-button>
+                  } ><b>Numeric Style</b></sl-radio-button>
                 </sl-radio-group>
               </div>
             </sl-tab-panel>
 
             <sl-tab-panel name="statistic">
+              <table border="1">
+                <tr>
+                  <td>Number of cards</td>
+                  <td class="table-number">${this.cardList.length}</td>
+                </tr>
+                <tr>
+                  <td>Number of decks</td>
+                  <td class="table-number">${this.deckCollection.length}</td>
+                </tr>
+                <tr>
+                  <td>Number of reviewed cards</td>
+                  <td class="table-number">${this.reviewed}</td>
+                </tr>
+                <tr>
+                  <td>Number of reviewed cards with a positive response</td>
+                  <td class="table-number">${
+                    this.positiveReviewed +
+                    ` (` +
+                    ((this.positiveReviewed / this.reviewed) * 100).toFixed(1) +
+                    `)` +
+                    `%`
+                  }</td>
+                </tr>
+                <tr>
+                  <td>Number of reviewed cards with a negative response</td>
+                  <td class="table-number">${
+                    this.negativeReviewed +
+                    ` (` +
+                    ((this.negativeReviewed / this.reviewed) * 100).toFixed(1) +
+                    `)` +
+                    `%`
+                  }</td>
+                </tr>
+              </table>
             </sl-tab-panel>
           </sl-tab-group>
         </div>

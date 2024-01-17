@@ -1,4 +1,5 @@
 export class Flashcard {
+  objectId: string;
   frontContent: string;
   backContent: string;
   frontType: string;
@@ -9,8 +10,10 @@ export class Flashcard {
   interval: number;
   lastReview: Date;
   nextReview: Date;
+  editable: boolean;
 
   constructor(
+    objectId: string,
     frontContent: string,
     backContent: string,
     frontType: string,
@@ -20,8 +23,10 @@ export class Flashcard {
     repNumber: number,
     interval: number,
     lastReview: Date,
-    nextReview: Date
+    nextReview: Date,
+    editable: boolean
   ) {
+    this.objectId = objectId;
     this.frontContent = frontContent;
     this.backContent = backContent;
     this.frontType = frontType;
@@ -32,10 +37,12 @@ export class Flashcard {
     this.interval = interval;
     this.lastReview = lastReview;
     this.nextReview = nextReview;
+    this.editable = editable;
   }
 
   toJSON() {
     return {
+      objectId: this.objectId,
       frontContent: this.frontContent,
       backContent: this.backContent,
       frontType: this.frontType,
@@ -46,12 +53,14 @@ export class Flashcard {
       interval: this.interval,
       lastReview: this.lastReview,
       nextReview: this.nextReview,
+      editable: this.editable,
     };
   }
 
   // Factory method to create a Flashcard instance from serialized data
   static fromJSON(data) {
     return new Flashcard(
+      data.objectId,
       data.frontContent,
       data.backContent,
       data.frontType,
@@ -61,7 +70,8 @@ export class Flashcard {
       data.repNumber,
       data.interval,
       data.lastReview,
-      data.nextReview
+      data.nextReview,
+      data.editable
     );
   }
 }

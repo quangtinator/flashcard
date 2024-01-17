@@ -1,15 +1,20 @@
 import { Flashcard } from "./Flashcard";
 
 export class Deck {
+  objectId: string;
   name: string;
   cards: Flashcard[];
+  editable: boolean;
 
-  constructor(name) {
+  constructor(objectId: string, name: string, editable: boolean) {
+    this.objectId = objectId;
     this.name = name;
     this.cards = [];
+    this.editable = editable;
   }
 
   addCard(
+    objectId: string,
     frontContent: string,
     backContent: string,
     frontType: string,
@@ -19,9 +24,11 @@ export class Deck {
     repNumber: number,
     interval: number,
     lastReview: Date,
-    nextReview: Date
+    nextReview: Date,
+    editable: boolean
   ) {
     const card = new Flashcard(
+      objectId,
       frontContent,
       backContent,
       frontType,
@@ -31,41 +38,24 @@ export class Deck {
       repNumber,
       interval,
       lastReview,
-      nextReview
+      nextReview,
+      editable
     );
     this.cards.push(card);
   }
 
-  removeCard(index: number) {
-    if (index >= 0 && index < this.cards.length) {
-      this.cards.splice(index, 1);
-    }
-  }
-
-  getCard(index: number) {
-    if (index >= 0 && index < this.cards.length) {
-      return this.cards[index];
-    }
-    return null;
-  }
-
-  shuffle() {
-    for (let i = this.cards.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [this.cards[i], this.cards[j]] = [this.cards[j], this.cards[i]];
-    }
-  }
-
   toJSON() {
     return {
+      objectId: this.objectId,
       name: this.name,
-      cards: this.cards.map((card) => card.toJSON()), // Serialize cards
+      cards: this.cards.map((card) => card.toJSON()),
+      editable: this.editable,
     };
   }
 
   // Factory method to create a Deck instance from serialized data
   static fromJSON(data) {
-    const deck = new Deck(data.name);
+    const deck = new Deck(data.objectId, data.name, data.editable);
     deck.cards = data.cards.map((cardData) => Flashcard.fromJSON(cardData));
     return deck;
   }
